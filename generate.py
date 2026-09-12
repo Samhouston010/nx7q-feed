@@ -234,28 +234,40 @@ def main():
     # 2. Build Rakuten EPG API URL
     epg_start, epg_end = get_epg_window()
 
-    params = (
-        "classification_id=18"
-        "&device_identifier=web"
-        "&device_stream_audio_quality=2.0"
-        "&device_stream_hdr_type=NONE"
-        "&device_stream_video_quality=FHD"
-        "&epg_duration_minutes=360"
-        f"&epg_ends_at={epg_end.strftime('%Y-%m-%dT%H:%M:%S.000Z')}"
-        f"&epg_ends_at_timestamp={epg_end.timestamp()}"
-        f"&epg_starts_at={epg_start.strftime('%Y-%m-%dT%H:%M:%S.000Z')}"
-        f"&epg_starts_at_timestamp={epg_start.timestamp()}"
-        "&locale=en"
-        "&market_code=uk"
-        "&per_page=250"
-    )
-    api_url = "https://gizmo.rakuten.tv/v3/live_channels?" + params.replace(":", "%3A")
+    # ponytail: Rakuten's API now rejects per_page > ~79 (400 exception.invalid_per_page),
+    # was previously allowing 250 in one shot. Page through at 50/page instead.
+    PER_PAGE = 50
+
+    def build_url(page: int) -> str:
+        params = (
+            "classification_id=18"
+            "&device_identifier=web"
+            "&device_stream_audio_quality=2.0"
+            "&device_stream_hdr_type=NONE"
+            "&device_stream_video_quality=FHD"
+            "&epg_duration_minutes=360"
+            f"&epg_ends_at={epg_end.strftime('%Y-%m-%dT%H:%M:%S.000Z')}"
+            f"&epg_ends_at_timestamp={epg_end.timestamp()}"
+            f"&epg_starts_at={epg_start.strftime('%Y-%m-%dT%H:%M:%S.000Z')}"
+            f"&epg_starts_at_timestamp={epg_start.timestamp()}"
+            "&locale=en"
+            "&market_code=uk"
+            f"&per_page={PER_PAGE}"
+            f"&page={page}"
+        )
+        return "https://gizmo.rakuten.tv/v3/live_channels?" + params.replace(":", "%3A")
 
     print("\nFetching EPG data from Rakuten API ...")
-    resp = requests.get(api_url, timeout=30)
-    resp.raise_for_status()
-
-    data = resp.json()["data"]
+    data = []
+    page = 1
+    total_pages = 1
+    while page <= total_pages:
+        resp = requests.get(build_url(page), timeout=30)
+        resp.raise_for_status()
+        body = resp.json()
+        data.extend(body["data"])
+        total_pages = body["meta"]["pagination"]["total_pages"]
+        page += 1
     print(f"Retrieved {len(data)} channels\n")
 
     channels_data  = []
