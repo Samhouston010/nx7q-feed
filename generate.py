@@ -17,7 +17,7 @@ from lxml import etree
 
 # ── Configuration ─────────────────────────────────────────────────────────────
 
-M3U_SOURCE         = "https://www.apsattv.com/rakutentv-uk.m3u"
+M3U_SOURCE         = "https://www.apsattv.com/rakuten_uk.m3u"  # apsattv renamed this 2026-09-21 (old rakutentv-uk.m3u 404s)
 TIMEZONE           = pytz.timezone("Europe/London")
 DT_FORMAT          = "%Y%m%d%H%M%S %z"
 GAP_THRESHOLD_SECS = 60  # snap end-times within this many seconds of the next start
